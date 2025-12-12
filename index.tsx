@@ -3,8 +3,21 @@ import { createRoot } from "react-dom/client";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import html2canvas from "html2canvas";
 
-// Initialize Gemini API for general tasks
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini API with safe environment variable access for Vite/Vercel
+// Vercel/Vite uses import.meta.env.VITE_API_KEY. 'process' is not available in the browser.
+const getApiKey = () => {
+  // Check for Vite environment variable
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_KEY) {
+    return (import.meta as any).env.VITE_API_KEY;
+  }
+  // Fallback for Node-like environments or if defined globally
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  return "";
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 // Define the JSON schema for the poem response
 const poemSchema: Schema = {
