@@ -6,13 +6,23 @@ import html2canvas from "html2canvas";
 // Initialize Gemini API with safe environment variable access for Vite/Vercel
 // Vercel/Vite uses import.meta.env.VITE_API_KEY. 'process' is not available in the browser.
 const getApiKey = () => {
-  // Check for Vite environment variable
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_KEY) {
-    return (import.meta as any).env.VITE_API_KEY;
+  // 1. Check for Vite environment variable (standard for this setup)
+  try {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_KEY) {
+      return (import.meta as any).env.VITE_API_KEY;
+    }
+  } catch (e) {
+    // Ignore error
   }
-  // Fallback for Node-like environments or if defined globally
-  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-    return process.env.API_KEY;
+  
+  // 2. Fallback: Check for process.env (Node.js or bundler replacement)
+  try {
+    // We check typeof process first to avoid ReferenceError in strict browser environments
+    if (typeof process !== 'undefined' && process.env?.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore error
   }
   return "";
 };
@@ -140,6 +150,14 @@ const App = () => {
     setBgImage(null);
     setIsSpeaking(false);
     
+    // Explicitly check API key before making the call
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        setError("Configuration Error: API Key is missing. Please add VITE_API_KEY to your Vercel Environment Variables.");
+        setLoading(false);
+        return;
+    }
+
     try {
       const model = "gemini-2.5-flash";
       // Expanded prompt to explicitly handle phrases/lines
@@ -176,9 +194,11 @@ const App = () => {
         setError("The scholars remained silent. Please try again.");
         setLoading(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("An error occurred while consulting the archives.");
+      // improved error message handling
+      const msg = err.message || JSON.stringify(err);
+      setError(`An error occurred while consulting the archives: ${msg}`);
       setLoading(false);
     }
   };
